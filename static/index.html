@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniGuard AI - Cybersecurity SOC</title>
+<link rel="stylesheet" href="/static/css/app.css">
+<link rel="stylesheet" href="/static/css/components.css">
+<link rel="stylesheet" href="/static/css/pages.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div class="conn-banner" id="connBanner">
+  <span>⚠️ BACKEND OFFLINE — Unable to connect to UniGuardAI API.</span>
+  <button id="retryConnBtn">RETRY CONNECTION</button>
+</div>
+
+<div class="app-shell">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="name">🛡️ UNIGUARD AI</div>
+      <div class="sub">Cybersecurity SOC</div>
+    </div>
+    <div class="sidebar-nav" id="sidebarNav"></div>
+    <div class="sidebar-footer" id="sidebarFooter"><span class="d"></span> System Operational</div>
+  </div>
+
+  <div class="main-area">
+    <div class="topheader">
+      <div class="left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+        <span class="page-title" id="pageTitle">Dashboard</span>
+        <span class="env-tag">LOCAL / DEMO</span>
+      </div>
+      <div class="right">
+        <div class="mode-toggle">
+          <button class="live" data-mode="live">🟢 LIVE</button>
+          <button data-mode="demo" class="demo active">🟣 DEMO</button>
+        </div>
+        <span class="status-chip PROTECTED" id="statusChip">🟢 PROTECTED</span>
+        <span class="clock" id="headerClock">--:--:--</span>
+        <span class="bell" id="bellIcon">🔔<span class="badge" id="bellBadge" style="display:none;">!</span></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- ============ 01 DASHBOARD ============ -->
+      <section class="page-section" id="page-dashboard">
+        <div class="notice" id="dashModeNotice" style="margin-bottom:12px;"></div>
+        <div id="dashPhoneBanner"></div>
+        <div class="grid g-metrics" id="dashMetrics"></div>
+        <div class="grid g-2col" style="margin-top:12px;">
+          <div class="card">
+            <div class="card-title">TRAFFIC OVER TIME</div>
+            <div class="chart-box"><canvas id="dashTrafficChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title" id="dashDonutLabel">THREAT DISTRIBUTION</div>
+            <div class="donut-box"><canvas id="dashDonut"></canvas></div>
+          </div>
+        </div>
+        <div class="grid g-metrics" id="dashMetrics2" style="margin-top:12px;"></div>
+        <div class="grid g-2col" style="margin-top:12px;">
+          <div class="card">
+            <div class="card-title">RECENT THREATS</div>
+            <div class="table-wrap"><table><thead><tr><th>Time</th><th>Source</th><th>Severity</th><th>Status</th></tr></thead><tbody id="dashRecentThreats"></tbody></table></div>
+          </div>
+          <div class="card">
+            <div class="card-title">ACTIVE INCIDENT</div>
+            <div id="dashActiveIncident"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 02 LIVE TRAFFIC ============ -->
+      <section class="page-section page-hidden" id="page-traffic">
+        <div class="notice" id="trafficScopeNotice" style="margin-bottom:12px;"></div>
+        <div class="grid g-metrics" id="trafficMetrics"></div>
+        <div class="card" style="margin-top:12px;">
+          <div class="card-title">TRAFFIC TIMELINE</div>
+          <div class="chart-box"><canvas id="trafficPageChart"></canvas></div>
+        </div>
+        <div class="card" style="margin-top:12px;">
+          <div class="card-title">LIVE FLOW LOG
+            <span class="tag">
+              <select id="trafficFilter"><option value="all">All</option><option value="blocked">Blocked</option><option value="suspicious">Suspicious</option></select>
+              <button class="btn small" id="trafficPauseBtn">⏸ Pause</button>
+              <button class="btn small" id="trafficClearBtn">Clear</button>
+            </span>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Time</th><th>Source IP</th><th>Destination</th><th>Protocol</th><th>Src Port</th><th>Dst Port</th><th>Packets</th><th>Bytes</th><th>Status</th><th>Source</th></tr></thead>
+            <tbody id="trafficLogBody"></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ============ 03 THREATS ============ -->
+      <section class="page-section page-hidden" id="page-threats">
+        <div class="severity-filter">
+          <button class="active" data-sev="ALL">All</button><button data-sev="CRITICAL">Critical</button>
+          <button data-sev="HIGH">High</button><button data-sev="MEDIUM">Medium</button><button data-sev="LOW">Low</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table>
+            <thead><tr><th>Time</th><th>Threat Type</th><th>Source IP</th><th>Target</th><th>Risk Score</th><th>Severity</th><th>Status</th></tr></thead>
+            <tbody id="threatsBody"></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ============ 04 ALERTS ============ -->
+      <section class="page-section page-hidden" id="page-alerts">
+        <div class="notice" id="alertsNotice" style="margin-bottom:12px;"></div>
+        <div class="card">
+          <div class="card-title">ACTIVE ALERTS</div>
+          <div class="table-wrap"><table><thead><tr><th>Severity</th><th>Threat</th><th>Time</th><th>Source</th><th>Target</th><th>Status</th><th>Actions</th></tr></thead><tbody id="alertsActiveBody"></tbody></table></div>
+        </div>
+        <div class="card" style="margin-top:12px;">
+          <div class="card-title">RESOLVED ALERTS</div>
+          <div class="table-wrap"><table><thead><tr><th>Severity</th><th>Threat</th><th>Time</th><th>Source</th><th>Target</th><th>Status</th><th>Actions</th></tr></thead><tbody id="alertsResolvedBody"></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- ============ 05 INVESTIGATION ============ -->
+      <section class="page-section page-hidden" id="page-investigation">
+        <div id="invEmpty" class="empty-state">No incident selected. Open one from Threats or Alerts, or wait for a live detection.</div>
+        <div id="invBody" class="page-hidden">
+          <div class="card">
+            <div class="inc-header">
+              <div><div class="id" id="invId">INCIDENT #-</div><div class="type" id="invType"></div></div>
+              <div id="invSourceTag"></div>
+            </div>
+            <div class="kv" id="invKv"></div>
+          </div>
+
+          <div class="grid g-2col" style="margin-top:12px;">
+            <div class="card">
+              <div class="tabs">
+                <button class="tab-btn active" data-tab="overview">Overview</button>
+                <button class="tab-btn" data-tab="timeline">Timeline</button>
+                <button class="tab-btn" data-tab="behavior">Behavior</button>
+                <button class="tab-btn" data-tab="traffic">Traffic</button>
+                <button class="tab-btn" data-tab="evidence">Evidence</button>
+                <button class="tab-btn" data-tab="response">Response</button>
+              </div>
+              <div class="tab-pane active" id="inv-tab-overview">
+                <div class="card-title">WHY WAS THIS DETECTED?</div>
+                <ul class="evidence-list" id="invEvidence"></ul>
+              </div>
+              <div class="tab-pane" id="inv-tab-timeline"><div id="invTimeline"></div></div>
+              <div class="tab-pane" id="inv-tab-behavior">
+                <div class="notice">Behavioral analysis is the same heuristic shown on the IP Intelligence page (timing regularity, user-agent consistency) - see that page for the selected source IP.</div>
+              </div>
+              <div class="tab-pane" id="inv-tab-traffic"><div id="invTraffic"></div></div>
+              <div class="tab-pane" id="inv-tab-evidence">
+                <ul class="evidence-list" id="invEvidence2"></ul>
+                <div class="card-title" style="margin-top:14px;">STANDARDIZED ALERT SCHEMA</div>
+                <div class="kv" id="invAlertSchema" style="margin-top:8px;"></div>
+                <div class="card-title" style="margin-top:14px;">EVIDENCE LEDGER (HASH CHAIN)</div>
+                <div class="kv mono" id="invLedgerKv" style="margin-top:8px;"></div>
+              </div>
+              <div class="tab-pane" id="inv-tab-response"><div id="invResponse"></div></div>
+            </div>
+
+            <div>
+              <div class="card">
+                <div class="card-title">IMPACT ANALYSIS</div>
+                <div id="invImpact"></div>
+              </div>
+              <div class="card" style="margin-top:12px;">
+                <div class="card-title">🛡️ RESPONSE <span class="tag">Active Mitigation — Demo/Application Layer (NOT the SIH passive path)</span></div>
+                <div class="btn-grid action-select">
+                  <button class="btn" data-action="rate_limit_source">Rate Limit Source</button>
+                  <button class="btn" data-action="block_source">Block Source</button>
+                  <button class="btn" data-action="protect_endpoint">Protect Endpoint</button>
+                  <button class="btn" data-action="monitor_only">Monitor Only</button>
+                </div>
+                <div style="font-size:11px; color:var(--muted); margin:8px 0;">Selected: <span id="invActionLabel">block_source</span></div>
+                <button class="btn primary" id="invMitigateBtn">🛡️ MITIGATE ATTACK</button>
+                <div id="invMitigateStatus" style="font-size:11.5px; color:var(--muted); margin-top:8px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 06 IP INTELLIGENCE ============ -->
+      <section class="page-section page-hidden" id="page-ip">
+        <div class="notice" id="ipModeNotice" style="margin-bottom:12px;"></div>
+        <div class="card">
+          <div class="lookup-row">
+            <input type="text" id="ipInput" placeholder="Enter IP Address (e.g. 192.168.1.25)">
+            <button class="btn accent" id="ipLookupBtn">LOOKUP</button>
+          </div>
+          <div id="ipResult"><div class="empty-state">Enter an IP address above to investigate.</div></div>
+        </div>
+      </section>
+
+      <!-- ============ 07 NETWORK GRAPH ============ -->
+      <section class="page-section page-hidden" id="page-network">
+        <div class="notice" id="netModeNotice" style="margin-bottom:12px;"></div>
+        <div class="card">
+          <div class="graph-controls">
+            <button class="btn small" id="netZoomIn">Zoom +</button>
+            <button class="btn small" id="netZoomOut">Zoom -</button>
+            <button class="btn small" id="netZoomReset">Reset</button>
+          </div>
+          <svg id="netSvg" viewBox="0 0 700 420" style="transform-origin:center;"></svg>
+        </div>
+        <div class="card node-info" style="margin-top:12px;">
+          <div class="card-title">NODE DETAILS</div>
+          <div id="netNodeInfo"><div class="empty-state">Click a node to view details</div></div>
+        </div>
+      </section>
+
+      <!-- ============ 08 AI MODELS ============ -->
+      <section class="page-section page-hidden" id="page-ai">
+        <div class="card">
+          <div class="card-title">DETECTION PIPELINE</div>
+          <div class="pipeline-flow" id="aiPipeline"></div>
+        </div>
+        <div class="card" style="margin-top:12px;">
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="overview">Models Overview</button>
+            <button class="tab-btn" data-tab="anomaly">Anomaly Detection</button>
+            <button class="tab-btn" data-tab="class">Threat Classification</button>
+            <button class="tab-btn" data-tab="perf">Model Performance</button>
+          </div>
+          <div class="tab-pane active" id="ai-tab-overview"><div id="aiOverview"></div></div>
+          <div class="tab-pane" id="ai-tab-anomaly"><div id="aiAnomalyTab"></div></div>
+          <div class="tab-pane" id="ai-tab-class"><div id="aiClassTab"></div></div>
+          <div class="tab-pane" id="ai-tab-perf"><div id="aiPerfTab"></div></div>
+        </div>
+        <div class="card" style="margin-top:12px;">
+          <div class="card-title">SIH26145 PASSIVE DETECTION PIPELINE</div>
+          <div id="aiSihPipeline" class="pipeline-flow" style="margin-top:8px;"></div>
+          <div class="card-title" style="margin-top:14px;">THREAT CATEGORY COVERAGE</div>
+          <div class="kv" id="aiSihCategories" style="margin-top:8px;"></div>
+        </div>
+      </section>
+
+      <!-- ============ 09 SYSTEM HEALTH ============ -->
+      <section class="page-section page-hidden" id="page-health">
+        <div class="notice" id="healthModeNotice" style="margin-bottom:12px;"></div>
+        <div class="grid g-2col">
+          <div class="card">
+            <div class="card-title">SYSTEM COMPONENTS</div>
+            <div id="healthComponents"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">RESOURCES</div>
+            <div id="healthResources"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px;">
+          <div class="card-title">SYSTEM INFORMATION</div>
+          <div id="healthInfo"></div>
+        </div>
+        <div class="card" style="margin-top:12px;">
+          <div class="card-title">PERFORMANCE <span class="tag">real measured throughput / detection latency</span></div>
+          <div class="kv" id="healthBenchmark" style="margin-top:8px;"></div>
+        </div>
+      </section>
+
+      <!-- ============ 10 SETTINGS ============ -->
+      <section class="page-section page-hidden" id="page-settings">
+        <div class="card" id="sihAlignmentCard" style="margin-bottom:12px;">
+          <div class="card-title">SIH26145 ALIGNMENT <span class="tag">Problem Statement ID: SIH26145 — NTRO — Blockchain &amp; Cybersecurity</span></div>
+          <div id="sihPipeline" class="pipeline-flow" style="margin:10px 0;"></div>
+          <div class="kv" id="sihMitigationKv" style="margin-top:10px;"></div>
+          <div class="notice" id="sihImplNote"></div>
+          <div class="card-title" style="margin-top:14px;">THREAT CATEGORY COVERAGE</div>
+          <div id="sihCategoryTable" style="margin-top:8px;"></div>
+          <div class="kv" style="margin-top:14px;">
+            <div><span>Evidence Integrity</span><span id="sihLedgerStatus">-</span></div>
+            <div><span>Ledger records</span><span id="sihLedgerCount">-</span></div>
+            <div><span>Payload decryption</span><span>NOT USED</span></div>
+            <div><span>Analysis basis</span><span>Metadata / application-layer HTTP only</span></div>
+          </div>
+        </div>
+        <div class="grid g-2even">
+          <div class="card">
+            <div class="settings-section">
+              <h4>Detection <span style="font-weight:400; text-transform:none;">(display only — backend uses fixed thresholds for demo stability)</span></h4>
+              <label>Detection threshold: <span id="setDetectionThresholdVal">25</span></label>
+              <input type="range" id="setDetectionThreshold" min="0" max="100">
+              <label>Risk threshold: <span id="setRiskThresholdVal">50</span></label>
+              <input type="range" id="setRiskThreshold" min="0" max="100">
+              <label>Refresh interval: <span id="setRefreshIntervalVal">1.0s</span></label>
+              <input type="range" id="setRefreshInterval" min="500" max="5000" step="250">
+            </div>
+            <div class="settings-section">
+              <h4>Mitigation <span style="font-weight:400; text-transform:none;">(real — used on the next Mitigate Attack call)</span></h4>
+              <label>Rate limit: <span id="setMitLimitVal">1</span> req/s</label>
+              <input type="range" id="setMitLimit" min="1" max="20">
+              <label>Block/rate-limit duration: <span id="setMitTtlVal">120s</span></label>
+              <input type="range" id="setMitTtl" min="30" max="600" step="30">
+              <div class="notice" style="margin-top:10px;">⚠️ <b>Active Mitigation — Demo/Application Layer.</b> This in-band block/rate-limit is real and enforced, but it is NOT part of the SIH26145 passive, read-only, no-return-path monitoring architecture below. See SIH26145 Alignment.</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="settings-section">
+              <h4>Interface</h4>
+              <div class="toggle-row"><span>Compact mode</span><label class="switch"><input type="checkbox" id="setCompact"><span class="slider"></span></label></div>
+              <div class="toggle-row"><span>Auto refresh</span><label class="switch"><input type="checkbox" id="setAutoRefresh"><span class="slider"></span></label></div>
+              <div class="toggle-row"><span>Theme</span><span style="color:var(--muted)">Dark (only theme available)</span></div>
+            </div>
+            <div class="settings-section">
+              <h4>Demo</h4>
+              <div class="toggle-row"><span>Demo mode</span><label class="switch"><input type="checkbox" id="setDemoMode"><span class="slider"></span></label></div>
+              <label>Simulation speed</label>
+              <select id="setDemoSpeed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option></select>
+              <div class="btn-row" style="margin-top:10px;">
+                <button class="btn small scenario-btn" data-scenario="normal">Normal</button>
+                <button class="btn small scenario-btn" data-scenario="suspicious">Suspicious</button>
+                <button class="btn small scenario-btn" data-scenario="dos">DDoS-like</button>
+                <button class="btn small scenario-btn" data-scenario="recovery">Recovery</button>
+              </div>
+            </div>
+            <div class="settings-section">
+              <h4>Advanced</h4>
+              <button class="btn" id="setSystemDiagnosticsBtn">System Diagnostics</button>
+              <div style="font-size:10.5px;color:var(--muted);margin-top:6px;">Opens a controlled, mobile-friendly traffic simulation for live demonstrations.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ HIDDEN: MOBILE DEMO (not in sidebar - reached via Settings > System Diagnostics) ============ -->
+      <section class="page-section page-hidden" id="page-mobile-demo">
+        <div class="mobile-demo-wrap">
+          <div class="card">
+            <div class="card-title">SYSTEM DIAGNOSTICS</div>
+            <div class="notice" style="margin-top:0;">CONTROLLED TRAFFIC SIMULATION — safe, simulated numbers only. Sends a lightweight control signal to the backend so the SOC dashboard sees it remotely; never sends real attack traffic anywhere.</div>
+
+            <div class="kv" style="margin-top:14px;">
+              <div><span>Device</span><span>📱 THIS DEVICE</span></div>
+              <div><span>Threat Scenario</span><span>DOS-LIKE / HTTP FLOOD</span></div>
+            </div>
+
+            <div class="settings-section" style="margin-top:14px;">
+              <h4>Intensity</h4>
+              <div class="btn-row" id="mdIntensityRow">
+                <button class="btn small md-intensity-btn" data-intensity="LOW">LOW</button>
+                <button class="btn small md-intensity-btn active" data-intensity="MEDIUM">MEDIUM</button>
+                <button class="btn small md-intensity-btn" data-intensity="HIGH">HIGH</button>
+              </div>
+            </div>
+
+            <div class="btn-row" style="margin-top:16px;">
+              <button class="btn primary" id="mdStartBtn" style="flex:1;">🔴 START</button>
+              <button class="btn" id="mdStopBtn" style="flex:1;" disabled>STOP</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px;" id="mdDeviceCard">
+            <div class="card-title">DEVICE STATUS</div>
+            <div id="mdDeviceBody"><div class="empty-state">Not running. Press START to begin the controlled simulation.</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 11 REPORTS ============ -->
+      <section class="page-section page-hidden" id="page-reports">
+        <div class="card">
+          <div class="btn-row" style="margin-bottom:12px;">
+            <button class="btn accent" id="repGenerateBtn">Generate Report</button>
+            <button class="btn" id="repPrintBtn">Print</button>
+            <button class="btn" id="repExportBtn">Export</button>
+          </div>
+          <div class="report-preview" id="repPreview">Click "Generate Report" to build a report from the most recent incident.</div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="invModal">
+  <div class="modal-box">
+    <h3>Apply Defensive Control</h3>
+    <p>Apply temporary defensive controls to the authorized demonstration source? Action: <b id="invModalActionLabel">block_source</b>. This is reversible and auto-expires.</p>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="invModalCancel">CANCEL</button>
+      <button class="modal-confirm" id="invModalConfirm">CONFIRM MITIGATION</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="phoneIncidentModal">
+  <div class="modal-box">
+    <h3>🚨 SECURITY INCIDENT</h3>
+    <p style="margin-bottom:10px;">SUSPICIOUS DEVICE DETECTED</p>
+    <div class="kv" style="margin-bottom:12px;" id="phoneIncidentKv">
+      <div><span>Device</span><span>📱 THIS DEVICE</span></div>
+      <div><span>Source IP</span><span>-</span></div>
+      <div><span>Threat</span><span>DOS-LIKE / HTTP FLOOD</span></div>
+      <div><span>Severity</span><span class="badge b-HIGH">HIGH</span></div>
+      <div><span>Traffic Rate</span><span>-</span></div>
+      <div><span>Risk Score</span><span>-</span></div>
+      <div><span>Confidence</span><span>-</span></div>
+      <div><span>Mode</span><span class="src-badge src-SIMULATED">🟣 SIMULATED</span></div>
+    </div>
+    <div class="card-title" style="margin-bottom:6px;">WHY WAS THIS DEVICE FLAGGED?</div>
+    <ul class="evidence-list" id="phoneIncidentEvidence" style="margin-bottom:10px;"></ul>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="phoneIncidentDismiss">DISMISS</button>
+      <button class="modal-confirm" id="phoneIncidentView">VIEW INCIDENT</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script src="/static/js/demo.js"></script>
+<script src="/static/js/phoneattack.js"></script>
+<script src="/static/js/charts.js"></script>
+<script src="/static/js/navigation.js"></script>
+<script src="/static/js/app.js"></script>
+<script src="/static/js/pages/dashboard.js"></script>
+<script src="/static/js/pages/traffic.js"></script>
+<script src="/static/js/pages/threats.js"></script>
+<script src="/static/js/pages/alerts.js"></script>
+<script src="/static/js/pages/investigation.js"></script>
+<script src="/static/js/pages/ip.js"></script>
+<script src="/static/js/pages/network.js"></script>
+<script src="/static/js/pages/ai.js"></script>
+<script src="/static/js/pages/health.js"></script>
+<script src="/static/js/pages/settings.js"></script>
+<script src="/static/js/pages/reports.js"></script>
+<script src="/static/js/pages/mobiledemo.js"></script>
+</body>
+</html>
